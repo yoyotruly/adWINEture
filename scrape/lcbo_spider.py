@@ -97,5 +97,5 @@ if __name__ == '__main__':
     process.crawl(LCBOSpider)
     process.start()
 
-    pd.DataFrame(listing).to_csv('lcbo_listing.csv', index=False)
-    pd.DataFrame(product).to_csv('lcbo_product.csv', index=False)
+    pd.DataFrame(listing).to_csv('../data/raw/lcbo_listing.csv', index=False)
+    pd.DataFrame(product).to_csv('../data/raw/lcbo_product.csv', index=False)
