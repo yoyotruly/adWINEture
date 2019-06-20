@@ -1,2 +1,4 @@
 EDA.ipynb
 ../scrape/scrapy_test.ipynb
+__pycache__/
+*.pyc
