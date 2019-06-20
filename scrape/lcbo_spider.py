@@ -1,8 +1,3 @@
-"""
-This module contains a scrapy spider, which crawls LCBO website's wine section
-and stores product scraping results in two csv files.
-"""
-
 import re
 import numpy as np
 import pandas as pd
@@ -25,6 +20,10 @@ product = {
 }
 
 class LCBOSpider(scrapy.Spider):
+    '''
+    add docstring
+    '''
+
     name = 'lcbo_spider'
 
     def __init__(self):
@@ -42,6 +41,10 @@ class LCBOSpider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse_listing)
 
     def parse_listing(self, response):
+        '''
+        add docstrings
+        '''
+
         names = response.css('.product_name a::text').extract()
         prices = response.css('#content .price::text').extract()
         prod_urls = response.css('.product_name a::attr(href)').extract()
@@ -70,26 +73,31 @@ class LCBOSpider(scrapy.Spider):
 
         if page_num <= self.last_page:
             next_page_url = response.css('#WC_SearchBasedNavigationResults_pagination_link_right_categoryResults::attr(href)').extract_first()
-            yield response.follow(url=next_page_url, callback=self.parse_listing)
+            yield response.follow(url=next_page_url,
+                                  callback=self.parse_listing)
 
-    @classmethod
-    def parse_product(cls, response):
-        sku = response.css('#prodSku span+ span::text').extract_first()
-        category = response.css('.headingNickname::text').extract_first()
-        description = response.css('#contentWrapper .hidden-xs::text').extract_first()
-        attributes = response.css('.product-details-list b::text').extract()
-        values = response.css('.product-details-list span::text').extract()
+    @staticmethod
+    def parse_product(response):
+        '''
+        add docstrings
+        '''
+
+        css_extract_first = {
+            'sku': '#prodSku span+ span::text',
+            'category': '.headingNickname::text',
+            'description': '#contentWrapper .hidden-xs::text',
+        }
+        for key, value in css_extract_first.items():
+            product[key].append(response.css(value).extract_first())
+
+        css_extract = {
+            'attributes': '.product-details-list b::text',
+            'values': '.product-details-list span::text',
+        }
+        for key, value in css_extract.items():
+            product[key].append(response.css(value).extract())
 
         product['url'].append(response.url)
-        product['category'].append(category)
-        product['description'].append(description)
-        product['attributes'].append(attributes)
-        product['values'].append(values)
-
-        if sku:
-            product['sku'].append(sku.strip())
-        else:
-            product['sku'].append(np.nan)
 
 
 if __name__ == '__main__':
