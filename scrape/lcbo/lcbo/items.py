@@ -7,8 +7,14 @@
 
 import scrapy
 
+class ListingItem(scrapy.Item):
+    name = scrapy.Field()
+    price = scrapy.Field()
+    prod_url = scrapy.Field()
 
-class LcboItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class ProductItem(scrapy.Item):
+    sku = scrapy.Field()
+    category = scrapy.Field()
+    description = scrapy.Field()
+    prod_url = scrapy.Field()
+    details = scrapy.Field()
