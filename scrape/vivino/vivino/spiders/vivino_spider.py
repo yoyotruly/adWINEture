@@ -101,8 +101,8 @@ class VivinoSpider(scrapy.Spider):
 
         if reviews:
             self.review_page_num += 1
-            wine_id = re.search(r'year=(.+?)&', response.url).group(1)
-            year = re.search(r'wines\/(.+?)\/', response.url).group(1)
+            wine_id = re.search(r'wines\/(.+?)\/', response.url).group(1)
+            year = re.search(r'year=(.+?)&', response.url).group(1)
             review_url_next = self.review_url.format(wine_id, year) % self.review_page_num
             yield scrapy.Request(url=review_url_next,
                                  callback=self.parse_review)
