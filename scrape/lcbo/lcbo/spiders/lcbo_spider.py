@@ -1,33 +1,24 @@
 import re
 import numpy as np
-import pandas as pd
 import scrapy
 from scrapy.crawler import CrawlerProcess
+from lcbo.items import ListingItem, ProductItem
 
-listing = {
-    'name': [],
-    'price': [],
-    'prod_url': []
-}
 
-product = {
-    'url': [],
-    'sku': [],
-    'category': [],
-    'description': [],
-    'attributes': [],
-    'values': []
-}
+def remove_duplicates(seq):
+    '''
+    Remove duplicates from a sequence while preserving sequence order
+    '''
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
+
 
 class LCBOSpider(scrapy.Spider):
     '''
-    add docstring
+    A web crawler that crawls LCBO website's red, white, rose, champagne and sparkling wine sections
     '''
-
     name = 'lcbo_spider'
-
-    def __init__(self):
-        self.last_page = None
 
     def start_requests(self):
         urls = [
@@ -42,36 +33,35 @@ class LCBOSpider(scrapy.Spider):
 
     def parse_listing(self, response):
         '''
-        add docstrings
+        Extract name, price and individual product url from each page and store
+        them in ListingItem. Follow link to next page while page content is not
+        empty. Yield scrapy request following each individual product url and
+        send response for parse_product to parse.
         '''
 
+        # extract wine name, price and url to product page
         names = response.css('.product_name a::text').extract()
         prices = response.css('#content .price::text').extract()
         prod_urls = response.css('.product_name a::attr(href)').extract()
 
-        for name in names:
-            listing['name'].append(name)
+        if names:  # if page content is not empty
 
-        for price in prices:
-            try:
-                listing['price'].append(float(re.sub(r'[$|,]', '', price.strip())))
-            except ValueError:
-                listing['price'].append(np.nan)
+            # store name, price and product url to scrapy item
+            for name, price, prod_url in zip(names, prices, prod_urls):
+                listing = ListingItem()
+                listing['name'] = name
+                try:
+                    listing['price'] = float(re.sub(r'[$|,]', '', price.strip()))
+                except ValueError:
+                    listing['price'] = np.nan
+                if prod_url:
+                    listing['prod_url'] = prod_url
+                    yield response.follow(url=prod_url, callback=self.parse_product)
+                else:
+                    listing['prod_url'] = np.nan
+                yield listing
 
-        for prod_url in prod_urls:
-            if prod_url:
-                listing['prod_url'].append(prod_url)
-                yield response.follow(url=prod_url, callback=self.parse_product)
-            else:
-                listing['prod_url'].append(np.nan)
-
-        page_num = int(response.css('#content > div.right.col-md-9.col-xs-12.col-sm-9 > div.productListingWidget > div.header_bar.topFieldBar > div.controls.pagination_present > div.paging_controls > div > div > div > div > a::text').extract_first())
-
-        if page_num == 1:
-            last_page_num = int(response.css('.ellipsis+ .hoverover::text').extract_first())
-            self.last_page = last_page_num
-
-        if page_num <= self.last_page:
+            # extract next page url and follow url to scrawl
             next_page_url = response.css('#WC_SearchBasedNavigationResults_pagination_link_right_categoryResults::attr(href)').extract_first()
             yield response.follow(url=next_page_url,
                                   callback=self.parse_listing)
@@ -79,31 +69,40 @@ class LCBOSpider(scrapy.Spider):
     @staticmethod
     def parse_product(response):
         '''
-        add docstrings
+        Extract product url, SKU#, category, description and product details
+        from product page. Store results in ProductItem.
         '''
+        product = ProductItem()
+        product['prod_url'] = response.url
 
+        # extract SKU#, category and description, store results to scrapy item
         css_extract_first = {
-            'sku': '#prodSku span+ span::text',
+            'sku': '.brand-details span+ span::text',
             'category': '.headingNickname::text',
             'description': '#contentWrapper .hidden-xs::text',
         }
-        for key, value in css_extract_first.items():
-            product[key].append(response.css(value).extract_first())
 
+        for key, value in css_extract_first.items():
+            product[key] = response.css(value).extract_first()
+
+        # extract product details list and store results to scrapy item
         css_extract = {
             'attributes': '.product-details-list b::text',
             'values': '.product-details-list span::text',
         }
-        for key, value in css_extract.items():
-            product[key].append(response.css(value).extract())
 
-        product['url'].append(response.url)
+        details = {}
+        for key, value in css_extract.items():
+            details[key] = remove_duplicates(response.css(value).extract())
+        for att, value in zip(details['attributes'], details['values']):
+            details[att] = value
+        del details['attributes'], details['values']
+        product['details'] = details
+
+        yield product
 
 
 if __name__ == '__main__':
     process = CrawlerProcess()
     process.crawl(LCBOSpider)
     process.start()
-
-    pd.DataFrame(listing).to_csv('../data/raw/lcbo_listing.csv', index=False)
-    pd.DataFrame(product).to_csv('../data/raw/lcbo_product.csv', index=False)
