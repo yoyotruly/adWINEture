@@ -15,10 +15,8 @@ class VivinoSpider(scrapy.Spider):
 
     def __init__(self):
         self.prod_url = 'https://www.vivino.com/api/explore/explore?country_code=CA&currency_code=CAD&min_rating=1&order_by=&order=desc&page={}&price_range_max=499&price_range_min=0&wine_type_ids[]=1&wine_type_ids[]=2&wine_type_ids[]=3&wine_type_ids[]=4'
-        self.review_url = 'https://www.vivino.com/api/wines/{}/reviews?year={}&page=%s'
-        self.prod_page_num = 1
-        self.prod_page_last = None
-        self.review_page_num = 1
+        self.review_url = 'https://www.vivino.com/api/wines/{}/reviews?year={}&page={}'
+        self.prod_page_last = 10
 
     def start_requests(self):
         url = self.prod_url.format(1)
@@ -63,21 +61,22 @@ class VivinoSpider(scrapy.Spider):
 
             # follow product page url and send response to parse_review
             if year == 'N.V.':
-                review_url = self.review_url.format(wine_id, 'null') % 1
+                review_url = self.review_url.format(wine_id, 'null', 1)
             else:
-                review_url = self.review_url.format(wine_id, year) % 1
+                review_url = self.review_url.format(wine_id, year, 1)
             yield scrapy.Request(url=review_url, callback=self.parse_review)
 
 
         # find total number of records matched and calculate max page number
         # (vivino.com uses infinite scrolling, therefore no pagination)
-        if self.prod_page_num == 1:
-            self.prod_page_last = math.ceil(data['records_matched']/25)
+        page_num = int(re.search(r'&page=(.+?)&', response.url).group(1))
+        if  page_num == 1:
+            records_matched = int(data['records_matched'])
+            self.prod_page_last = math.ceil(records_matched/25)
 
         # keep following link until reach last page
-        if self.prod_page_num < self.prod_page_last:
-            self.prod_page_num += 1
-            prod_url_next = self.prod_url.format(self.prod_page_num)
+        if page_num < self.prod_page_last:
+            prod_url_next = self.prod_url.format(page_num+1)
             yield scrapy.Request(url=prod_url_next, callback=self.parse_product)
 
 
@@ -100,10 +99,10 @@ class VivinoSpider(scrapy.Spider):
             yield review
 
         if reviews:
-            self.review_page_num += 1
-            wine_id = re.search(r'wines\/(.+?)\/', response.url).group(1)
-            year = re.search(r'year=(.+?)&', response.url).group(1)
-            review_url_next = self.review_url.format(wine_id, year) % self.review_page_num
+            wine_id = re.search(r'wines\/(.+)\/', response.url).group(1)
+            year = re.search(r'year=(.+)&', response.url).group(1)
+            page_num = int(re.search(r'&page=(\d+)', response.url).group(1))
+            review_url_next = self.review_url.format(wine_id, year, page_num+1)
             yield scrapy.Request(url=review_url_next,
                                  callback=self.parse_review)
 
