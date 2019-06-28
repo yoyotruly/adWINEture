@@ -1,5 +1,6 @@
 import json
 import math
+import re
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from vivino.items import ProductItem, ReviewItem
@@ -13,7 +14,7 @@ class VivinoSpider(scrapy.Spider):
     name = 'vivino_spider'
 
     def __init__(self):
-        self.prod_url = 'https://www.vivino.com/api/explore/explore?country_code=CA&currency_code=CAD&min_rating=1&order_by=&order=desc&page={}&price_range_max=500&price_range_min=0&wine_type_ids[]=1&wine_type_ids[]=2&wine_type_ids[]=3&wine_type_ids[]=4'
+        self.prod_url = 'https://www.vivino.com/api/explore/explore?country_code=CA&currency_code=CAD&min_rating=1&order_by=&order=desc&page={}&price_range_max=499&price_range_min=0&wine_type_ids[]=1&wine_type_ids[]=2&wine_type_ids[]=3&wine_type_ids[]=4'
         self.review_url = 'https://www.vivino.com/api/wines/{}/reviews?year={}&page=%s'
         self.prod_page_num = 1
         self.prod_page_last = None
@@ -89,10 +90,8 @@ class VivinoSpider(scrapy.Spider):
 
         for rev in reviews:
             review = ReviewItem()
-            wine_id = rev.get('vintage').get('wine').get('id')
-            year = rev.get('vintage').get('year')
-            review['wine_id'] = wine_id
-            review['year'] = year
+            review['wine_id'] = rev.get('vintage').get('wine').get('id')
+            review['year'] = rev.get('vintage').get('year')
             review['user_id'] = rev.get('id')
             review['rating'] = rev.get('rating')
             review['note'] = rev.get('note')
@@ -102,10 +101,9 @@ class VivinoSpider(scrapy.Spider):
 
         if reviews:
             self.review_page_num += 1
-            if year == 'N.V.':
-                review_url_next = self.review_url.format(wine_id, 'null') % self.review_page_num
-            else:
-                review_url_next = self.review_url.format(wine_id, year) % self.review_page_num
+            wine_id = re.search(r'year=(.+?)&', response.url).group(1)
+            year = re.search(r'wines\/(.+?)\/', response.url).group(1)
+            review_url_next = self.review_url.format(wine_id, year) % self.review_page_num
             yield scrapy.Request(url=review_url_next,
                                  callback=self.parse_review)
 
