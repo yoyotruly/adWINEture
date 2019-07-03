@@ -11,7 +11,7 @@ class ProductItem(scrapy.Item):
     wine_id = scrapy.Field()
     name = scrapy.Field()
     seo_name = scrapy.Field()
-    type = scrapy.Field()
+    wine_type = scrapy.Field()
     region = scrapy.Field()
     country = scrapy.Field()
     winery = scrapy.Field()
