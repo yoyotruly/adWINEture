@@ -42,7 +42,7 @@ class VivinoSpider(scrapy.Spider):
                 product['wine_id'] = wine_id
                 product['name'] = wine.get('name')
                 product['seo_name'] = wine.get('seo_name')
-                product['type'] = wine.get('type_id')
+                product['wine_type'] = wine.get('type_id')
                 product['region'] = wine.get('region').get('name')
                 product['country'] = wine.get('region').get('country').get('name')
                 product['winery'] = wine.get('winery').get('name')
@@ -72,11 +72,11 @@ class VivinoSpider(scrapy.Spider):
         page_num = int(re.search(r'&page=(.+?)&', response.url).group(1))
         if  page_num == 1:
             records_matched = int(data['records_matched'])
-            self.prod_page_last = math.ceil(records_matched/25)
+            self.prod_page_last = math.ceil(records_matched / 25)
 
         # keep following link until reach last page
         if page_num < self.prod_page_last:
-            prod_url_next = self.prod_url.format(page_num+1)
+            prod_url_next = self.prod_url.format(page_num + 1)
             yield scrapy.Request(url=prod_url_next, callback=self.parse_product)
 
 
@@ -102,7 +102,7 @@ class VivinoSpider(scrapy.Spider):
             wine_id = re.search(r'wines\/(.+)\/', response.url).group(1)
             year = re.search(r'year=(.+)&', response.url).group(1)
             page_num = int(re.search(r'&page=(\d+)', response.url).group(1))
-            review_url_next = self.review_url.format(wine_id, year, page_num+1)
+            review_url_next = self.review_url.format(wine_id, year, page_num + 1)
             yield scrapy.Request(url=review_url_next,
                                  callback=self.parse_review)
 
