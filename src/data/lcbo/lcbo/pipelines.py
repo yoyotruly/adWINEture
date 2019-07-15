@@ -15,7 +15,8 @@ class LcboPipeline(object):
     SaveTypes = ['listing', 'product']
 
     def __init__(self):
-        self.files = dict([(name, open('{}{}_{}.csv'.format(self.CSVPath, name, self.DownloadDate), 'w+b')) for name in self.SaveTypes])
+        self.files = dict([(name, open('{}{}_{}.csv'.format(self.CSVPath, name, self.DownloadDate), 'w+b'))
+                           for name in self.SaveTypes])
         self.exporters = dict([(name, CsvItemExporter(self.files[name])) for name in self.SaveTypes])
 
     def spider_opened(self, spider):

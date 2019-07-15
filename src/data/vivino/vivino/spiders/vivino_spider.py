@@ -9,7 +9,7 @@ from vivino.items import ProductItem, ReviewItem
 class VivinoSpider(scrapy.Spider):
     '''
     A web crawler that scrapes vivino.com for red, white, rose and sparkling
-    wine information and their corresponding user reviews.
+    wines between C$0 and C$499 and their latest user reviews.
     '''
     name = 'vivino_spider'
 
@@ -17,6 +17,7 @@ class VivinoSpider(scrapy.Spider):
         self.prod_url = 'https://www.vivino.com/api/explore/explore?country_code=CA&currency_code=CAD&min_rating=1&order_by=&order=desc&page={}&price_range_max=499&price_range_min=0&wine_type_ids[]=1&wine_type_ids[]=2&wine_type_ids[]=3&wine_type_ids[]=4'
         self.review_url = 'https://www.vivino.com/api/wines/{}/reviews?year={}&page={}'
         self.prod_page_last = 10
+        self.review_page_max = 500
 
     def start_requests(self):
         url = self.prod_url.format(1)
@@ -44,14 +45,21 @@ class VivinoSpider(scrapy.Spider):
                 product['seo_name'] = wine.get('seo_name')
                 product['wine_type'] = wine.get('type_id')
                 product['region'] = wine.get('region').get('name')
-                product['country'] = wine.get('region').get('country').get('name')
+                product['country'] = (wine.get('region')
+                                      .get('country')
+                                      .get('name'))
                 product['winery'] = wine.get('winery').get('name')
                 product['flavor'] = wine.get('taste').get('flavor')
                 product['structure'] = wine.get('taste').get('structure')
                 product['style'] = wine.get('style').get('name')
                 product['body'] = wine.get('style').get('body')
                 product['acidity'] = wine.get('style').get('acidity')
-                product['ratings_ave'] = record.get('vintage').get('statistics').get('ratings_average')
+                product['ratings_count'] = (record.get('vintage')
+                                            .get('statistics')
+                                            .get('ratings_count'))
+                product['ratings_ave'] = (record.get('vintage')
+                                          .get('statistics')
+                                          .get('ratings_average'))
                 product['year'] = year
                 product['price'] = record.get('price').get('amount')
             except (AttributeError, KeyError):
@@ -64,6 +72,7 @@ class VivinoSpider(scrapy.Spider):
                 review_url = self.review_url.format(wine_id, 'null', 1)
             else:
                 review_url = self.review_url.format(wine_id, year, 1)
+
             yield scrapy.Request(url=review_url, callback=self.parse_review)
 
 
@@ -98,10 +107,10 @@ class VivinoSpider(scrapy.Spider):
             review['created_at'] = rev.get('created_at')
             yield review
 
-        if reviews:
+        page_num = int(re.search(r'&page=(\d+)', response.url).group(1))
+        if reviews and page_num < self.review_page_max:
             wine_id = re.search(r'wines\/(.+)\/', response.url).group(1)
             year = re.search(r'year=(.+)&', response.url).group(1)
-            page_num = int(re.search(r'&page=(\d+)', response.url).group(1))
             review_url_next = self.review_url.format(wine_id, year, page_num + 1)
             yield scrapy.Request(url=review_url_next,
                                  callback=self.parse_review)

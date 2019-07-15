@@ -20,6 +20,7 @@ class ProductItem(scrapy.Item):
     style = scrapy.Field()
     body = scrapy.Field()
     acidity = scrapy.Field()
+    ratings_count = scrapy.Field()
     ratings_ave = scrapy.Field()
     year = scrapy.Field()
     price = scrapy.Field()
