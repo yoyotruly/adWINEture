@@ -1,13 +1,13 @@
 import re
 import unidecode
+import numpy as np
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
 
 def clean_text(text):
-
-    """
+    '''
     Convert text to all lowercase and strip it of natural line breaks, non-
     unicode characters, punctuations, numbers, unwanted regex patterns, and
     stopwords, then lemmatize nouns and verbs.
@@ -17,9 +17,9 @@ def clean_text(text):
 
     Returns:
     A cleaned text string.
-    """
+    '''
 
-    bad_regex = [r'\d+', r'[^\w\s]', r'\([A-Z].*?\d\)', r'\S+.com']
+    bad_regex = [r'\([a-z].*?\d\)', r'\S+.com', r'\d+', r'[^\w\s]', 'score']
     stop_words = stopwords.words('english')
     wnl = WordNetLemmatizer()
 
