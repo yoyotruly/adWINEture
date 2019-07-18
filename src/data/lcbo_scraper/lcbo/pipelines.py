@@ -10,7 +10,7 @@ from scrapy.exporters import CsvItemExporter
 
 class LcboPipeline(object):
 
-    CSVPath = '../../data/raw/lcbo_'
+    CSVPath = '../../../../data/raw/lcbo_'
     DownloadDate = time.strftime('%Y%m%d')
     SaveTypes = ['listing', 'product']
 

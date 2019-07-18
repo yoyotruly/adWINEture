@@ -10,7 +10,7 @@ from scrapy.exporters import CsvItemExporter
 
 class VivinoPipeline(object):
 
-    CSVPath = '../../data/raw/vivino_'
+    CSVPath = '../../../../data/raw/vivino_'
     DownloadDate = time.strftime('%Y%m%d')
     SaveTypes = ['product', 'review']
 
